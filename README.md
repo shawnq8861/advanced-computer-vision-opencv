@@ -9,7 +9,7 @@ Program 2 - color histogram binning, merging of backjground and foreground image
 
 Program 3 - k-means clustering of image colors, replacement of original pixel values with clustered values, Mat traversing and custom, 5 channel data type.
 
-Program 4 - 3D stereo imaging, recovering depth from single camera images at known baseline distance (camera spacing), SIFT feature detection and extraction, comparison of 3 diffeerent structure from motion approaches:
+Program 4 - 3D stereo imaging, recovering depth from single camera images at known baseline distance (camera spacing), SIFT feature detection and extraction, comparison of 3 different structure from motion approaches:
 
     a. traditional calibrated camera
     b. uncalibrated camera, warp rectification
