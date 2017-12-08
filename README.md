@@ -11,6 +11,6 @@ Program 3 - k-means clustering of image colors, replacement of original pixel va
 
 Program 4 - 3D stereo imaging, recovering depth from single camera images at known baseline distance (camera spacing), SIFT feature detection and extraction, comparison of 3 different structure from motion approaches:
 
-    a. traditional calibrated camera
-    b. uncalibrated camera, warp rectification
+    a. traditional calibrated camera.
+    b. uncalibrated camera, warp rectification.
     c. calibrated camera, SIFT feature epipolar line identification, custom disparity calculation.
