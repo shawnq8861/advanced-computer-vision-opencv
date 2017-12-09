@@ -890,10 +890,8 @@ int main(int argc, char *argv[])
             Mat goodDisparity = Mat::zeros(rectImg2.rows,
                                            rectImg2.cols,
                                            rectImg2.type());
-            Mat depthMap = Mat::zeros(rectImg2.rows,
-                                      rectImg2.cols,
-                                      CV_32F);
-            float deltaY = 25.0;
+            Mat depthMap = rectImg2.clone();
+            float deltaY = 10.0;
             vector<DMatch>::iterator matchIter;
             vector<char> matchesMask;
             for (matchIter = rectMatches.begin();
@@ -908,6 +906,10 @@ int main(int argc, char *argv[])
                 float y2 = rectKeypts2[index2].pt.y;
                 int col = (int)round(y2);
                 cout << "x2 = " << x2 << ", y2 = " << y2 << endl << endl;
+                //
+                // if y values are essentiall equal, the line is hroizontal
+                // and will be considered an epipolar line
+                //
                 if (abs(y1 - y2) < deltaY) {
                     matchesMask.push_back(1);
                     float disp = abs(x2 - x1);
@@ -916,6 +918,20 @@ int main(int argc, char *argv[])
                          << ", disparity (pixels) = " << disp
                          << ", depth (in) = " << depth << endl;
                     goodDisparity.at<uchar>(row, col) = (int)disp;
+                    Scalar white = Scalar(255, 255, 255);
+                    circle(goodDisparity, Point( row, col ), 5, white, 3, LINE_8, 0);
+                    circle(depthMap, Point( row, col ), 3, white, 2, 8, 0);
+                    stringstream textSS;
+                    textSS << depth;
+                    string text;
+                    textSS >> text;
+                    putText(depthMap,
+                            text,
+                            Point(row, col),
+                            FONT_HERSHEY_SIMPLEX,
+                            1,
+                            white,
+                            1);
                 }
                 else {
                     matchesMask.push_back(0);
@@ -941,6 +957,9 @@ int main(int argc, char *argv[])
             displayImage("Good Disparity Map", goodDisparity, windowHeight, 200, 200);
             fileName = "goodDisparityMap.jpg";
             saveImageToFile(fileName, goodDisparity);
+            displayImage("Good Depth Map", depthMap, windowHeight, 300, 300);
+            fileName = "goodDepthMap.jpg";
+            saveImageToFile(fileName, depthMap);
             //
             // build up jpeg image data and write to files
             //
