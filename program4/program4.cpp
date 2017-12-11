@@ -68,7 +68,7 @@ using namespace std;
 using namespace cv;
 
 //
-// helper functions
+// helper functions, display an image and save an image to jpeg file
 //
 void displayImage(const char *winName, Mat image, int windowSize, int xOffset, int yOffset);
 void saveImageToFile(string filename, Mat image);
