@@ -411,10 +411,28 @@ int main(int argc, char *argv[])
         // grab an image
         //
         INT frameGrabReturn = -1;
-        cout << "grabbing perspective image pair..." << endl << endl;
-        const int numPerspImages = 2;
-        for (int index = 0; index < numPerspImages; ++index) {
-            cout << "press <space> to save image " << index + 1 << endl;
+        cout << "grabbing raw images..." << endl << endl;
+        const int numImages = 4;
+        string fileName;
+        for (int index = 0; index < numImages; ++index) {
+            if (index < 2) {
+                cout << "press <space> to save top image " << index + 1 << endl;
+                fileName = "sideImage";
+                stringstream extra;
+                extra << index + 1;
+                string number;
+                extra >> number;
+                fileName.append(number);
+            }
+            else {
+                cout << "press <space> to save side image " << index - 1 << endl;
+                fileName = "topImage";
+                stringstream extra;
+                extra << index - 1;
+                string number;
+                extra >> number;
+                fileName.append(number);
+            }
             while(1) {
                 frameGrabReturn = is_FreezeVideo(hCam, IS_WAIT);
                 if (frameGrabReturn == IS_SUCCESS) {
@@ -444,25 +462,19 @@ int main(int argc, char *argv[])
             // build up jpeg image data and write to file
             //
             cout << "saving file..." << endl;
-            string fileName = "perspectiveImage";
-            stringstream extra;
-            extra << index + 1;
-            string number;
-            extra >> number;
-            fileName.append(number);
             saveImageToFile(fileName, inputImage);
         }
         //
         // detect and compute features
         //
-        Mat perspImg1 = imread("perspectiveImage1.jpg");
+        Mat perspImg1 = imread("sideImage1.jpg");
         uint imageFormat = CV_8U;   // 8 bit unsigned monochrome image
         Mat grayImg1 = Mat(Size(width, height), imageFormat);
         //
         // SIFT and SURF require grayscale image inputs
         //
         cvtColor(perspImg1, grayImg1, COLOR_BGR2GRAY);
-        Mat perspImg2 = imread("perspectiveImage2.jpg");
+        Mat perspImg2 = imread("sideImage2.jpg");
         Mat grayImg2 = Mat(Size(width, height), imageFormat);
         cvtColor(perspImg2, grayImg2, COLOR_BGR2GRAY);
         vector<KeyPoint> keypts1;
@@ -508,12 +520,18 @@ int main(int argc, char *argv[])
         // build up jpeg image data and write to files
         //
         cout << "saving files..." << endl;
-        string fileName = "firstKeypointImage.jpg";
+        fileName = "firstKeypointImage";
         saveImageToFile(fileName, siftKeyptImg1);
-        fileName = "secondKeypointImage.jpg";
+        fileName = "secondKeypointImage";
         saveImageToFile(fileName, siftKeyptImg2);
-        fileName = "keypointMatchImage.jpg";
+        fileName = "keypointMatchImage";
         saveImageToFile(fileName, matchesImg);
+        //
+        // Wait for the user to press a key in any GUI window.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
         //
         // use the matching points as input to finding the essential matrix
         // and recovering the camera pose.
@@ -589,7 +607,7 @@ int main(int argc, char *argv[])
                     Scalar(255,255,255),
                     inlierMask);
         displayImage("Inlier Matched Keypoints", inlierMatchesImg, windowHeight, 0, 0);
-        fileName = "inlierMatchImage.jpg";
+        fileName = "inlierMatchImage";
         saveImageToFile(fileName, matchesImg);
         //
         // determine the rotation matrix, R, and translation matrix, T
@@ -647,7 +665,7 @@ int main(int argc, char *argv[])
             //
             // first, create rectification mappings for each image
             // by calling iniUndistortRectifyMap, using values calculated
-            // by stereoRectify
+            // by stereoRectify and the camera distortion coefficients
             //
             Mat image1ReMap1;
             Mat image1ReMap2;
@@ -679,12 +697,11 @@ int main(int argc, char *argv[])
             Mat rectImg2;
             remap(grayImg2, rectImg2, image2ReMap1, image2ReMap2, INTER_LINEAR);
             displayImage("Rectified Image 1", rectImg1, windowHeight, 100, 100);
-            fileName = "rectifiedImage1.jpg";
+            fileName = "rectifiedImage1";
             saveImageToFile(fileName, rectImg1);
             displayImage("Rectified Image 2", rectImg2, windowHeight, 200, 200);
-            fileName = "rectifiedImage2.jpg";
+            fileName = "rectifiedImage2";
             saveImageToFile(fileName, rectImg2);
-
             //
             // compute the disparity map using the remapped, rectified images
             //
@@ -712,7 +729,7 @@ int main(int argc, char *argv[])
                                                             StereoSGBM::MODE_HH);
             pStereo->compute(rectImg1, rectImg2, disparity);
             //
-            // normalize the disparity map
+            // normalize the disparity map to 8 bit color depth 0 to 255
             //
             Mat normDisparity;
             disparity.convertTo(normDisparity, CV_8U);
@@ -720,23 +737,38 @@ int main(int argc, char *argv[])
             // show the disparity map
             //
             displayImage("Disparity Map", normDisparity, windowHeight, 250, 100);
-            fileName = "calibratedDisparityImage.jpg";
+            fileName = "calibratedDisparityImage";
             saveImageToFile(fileName, normDisparity);
             //
-            // try an uncalibrated approach
+            // Wait for the user to press a key in any GUI window.
             //
-            // prune the points to only inliers
-            // then, find fundamental matix, call stereoRectifyUnclibrated
-            // to compute the homography for each image, warp the images using
-            // the homographies, then calculate the disparity using the
-            // rectifed. warped images.
+            cout << "hit any key to continue..." << endl;
+            cvWaitKey(0);
+            destroyAllWindows();
+            //
+            // next, try an uncalibrated approach
+            //
+            // find fundamental matix, prune the points to only inliers,
+            // call stereoRectifyUnclibrated to compute the homography for
+            // each image, warp the images using the homographies, then
+            // calculate the disparity using the rectifed. warped images.
+            //
+            // find the fundamental matrix
+            //
+            Mat inlierMaskUnCal;
+            Mat F = findFundamentalMat(points1,
+                                       points2,
+                                       inlierMaskUnCal,
+                                       FM_RANSAC,
+                                       3.,
+                                       .99);
             //
             // loop over inlier matrix, save points that are inliers
             //
             vector<Point2f> inlierPts1;
             vector<Point2f> inlierPts2;
             cout << "pruning points to inliers..." << endl;
-            MatConstIterator_<uchar> matIter = inlierMask.begin<uchar>();
+            MatConstIterator_<uchar> matIter = inlierMaskUnCal.begin<uchar>();
             vector<Point2f>::iterator pt2Iter = points2.begin();
             for (vector<Point2f>::iterator pt1Iter = points1.begin();
                 pt1Iter != points1.end(); ++pt1Iter, ++pt2Iter,++matIter) {
@@ -755,14 +787,6 @@ int main(int argc, char *argv[])
             cout << "pushed back " << inlierPts1.size() << " inlier points"
                  << endl;
             //
-            // find the fundamental matrix
-            //
-            Mat F = findFundamentalMat(inlierPts1,
-                                       inlierPts2,
-                                       FM_RANSAC,
-                                       3.,
-                                       .99);
-            //
             // perform uncalibrated stereo rectification
             //
             Mat h1;
@@ -778,15 +802,16 @@ int main(int argc, char *argv[])
             // warp to rectify the images
             //
             // Rectify the images through warping
+            //
             Mat rectWarpImg1;
             warpPerspective(grayImg1, rectWarpImg1, h1, imageSize);
             Mat rectWarpImg2;
             warpPerspective(grayImg2, rectWarpImg2, h2, imageSize);
             displayImage("Warped Rectified Image 1", rectWarpImg1, windowHeight, 300, 300);
-            fileName = "warpRectifiedImage1.jpg";
+            fileName = "warpRectifiedImage1";
             saveImageToFile(fileName, rectWarpImg1);
             displayImage("Warped Rectified Image 2", rectWarpImg2, windowHeight, 150, 150);
-            fileName = "warpRectifiedImage2.jpg";
+            fileName = "warpRectifiedImage2";
             saveImageToFile(fileName, rectWarpImg2);
             //
             // find and display the disparity
@@ -802,8 +827,14 @@ int main(int argc, char *argv[])
             // show the disparity map
             //
             displayImage("Warped Disparity Map", normUncalDisp, windowHeight, 250, 100);
-            fileName = "uncalibratedDisparityImage.jpg";
+            fileName = "uncalibratedDisparityImage";
             saveImageToFile(fileName, normUncalDisp);
+            //
+            // Wait for the user to press a key in any GUI window.
+            //
+            cout << "hit any key to continue..." << endl;
+            cvWaitKey(0);
+            destroyAllWindows();
             //
             // reproject to 3D
             //
@@ -826,15 +857,23 @@ int main(int argc, char *argv[])
             Mat calXYZ;
             reprojectImageTo3D(disparity, calXYZ, reprojectQ, true);
             displayImage("3D Reprojection", calXYZ, windowHeight, 100, 200);
-            fileName = "3DReprojectionImage.jpg";
+            fileName = "3DReprojectionImage";
             saveImageToFile(fileName, calXYZ);
             //
-            // take a look at running SIFT again on the rectifed images
+            // Wait for the user to press a key in any GUI window.
+            //
+            cout << "hit any key to continue..." << endl;
+            cvWaitKey(0);
+            destroyAllWindows();
+            //
+            // next, take a look at running SIFT again on the rectifed images
             //
             // iterate over the vector of points
             // find the x coordinate in each image for each point
             // calculate disparity as:
             //                          disparity = xl - xr
+            //
+            // first the calibrated, rectified images
             //
             vector<KeyPoint> rectKeypts1;
             vector<KeyPoint> rectKeypts2;
@@ -952,28 +991,29 @@ int main(int argc, char *argv[])
                         Scalar(255,255,255),
                         matchesMask);
             displayImage("Good Rectified Matched Keypoints", goodMatchesImg, windowHeight, 0, 0);
-            fileName = "goodRectifiedMatchImage.jpg";
+            fileName = "goodRectifiedMatchImage";
             saveImageToFile(fileName, goodMatchesImg);
             displayImage("Good Disparity Map", goodDisparity, windowHeight, 200, 200);
-            fileName = "goodDisparityMap.jpg";
+            fileName = "goodDisparityMap";
             saveImageToFile(fileName, goodDisparity);
             displayImage("Good Depth Map", depthMap, windowHeight, 300, 300);
-            fileName = "goodDepthMap.jpg";
+            fileName = "goodDepthMap";
             saveImageToFile(fileName, depthMap);
             //
             // build up jpeg image data and write to files
             //
             cout << "saving files..." << endl;
-            string fileName = "firstRectifiedKeypointImage.jpg";
+            string fileName = "firstRectifiedKeypointImage";
             saveImageToFile(fileName, rectSiftKeyptImg1);
-            fileName = "secondRectifiedKeypointImage.jpg";
+            fileName = "secondRectifiedKeypointImage";
             saveImageToFile(fileName, rectSiftKeyptImg2);
-            fileName = "rectifiedKeypointMatchImage.jpg";
+            fileName = "rectifiedKeypointMatchImage";
             saveImageToFile(fileName, rectMatchesImg);
         }
         //
         // Wait for the user to press a key in any GUI window.
         //
+        cout << "hit any key to exit..." << endl;
         cvWaitKey(0);
     }
     //
