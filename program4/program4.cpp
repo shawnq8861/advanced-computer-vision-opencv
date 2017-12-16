@@ -89,6 +89,11 @@ int main(int argc, char *argv[])
     focalLengthSS << argv[2];
     focalLengthSS >> focalLength;
     cout << "camera focal length (pixels): " << focalLength << endl;
+    float cameraDistance = 0.0;
+    stringstream cameraDistanceSS;
+    cameraDistanceSS << argv[3];
+    cameraDistanceSS >> cameraDistance;
+    cout << "camera distance (inches): " << cameraDistance << endl;
     //
     // configure and initialize the camera
     //
@@ -407,74 +412,272 @@ int main(int argc, char *argv[])
     // assume camera is calibrated at this point
     //
     else {
-        //
-        // grab an image
-        //
-        INT frameGrabReturn = -1;
-        cout << "grabbing raw images..." << endl << endl;
-        const int numImages = 4;
+        cout << "grab new images? (y/n): ";
+        char grabNewImages = 'a';
+        cin >> grabNewImages;
         string fileName;
-        for (int index = 0; index < numImages; ++index) {
-            if (index < 2) {
-                cout << "press <space> to save top image " << index + 1 << endl;
-                fileName = "sideImage";
-                stringstream extra;
-                extra << index + 1;
-                string number;
-                extra >> number;
-                fileName.append(number);
-            }
-            else {
-                cout << "press <space> to save side image " << index - 1 << endl;
-                fileName = "topImage";
-                stringstream extra;
-                extra << index - 1;
-                string number;
-                extra >> number;
-                fileName.append(number);
-            }
-            while(1) {
-                frameGrabReturn = is_FreezeVideo(hCam, IS_WAIT);
-                if (frameGrabReturn == IS_SUCCESS) {
-                    //
-                    // link camera image buffer to OpenCV matrix
-                    //
-                    inputImage.data = (uchar *)ptrImgMem;
-                    //
-                    // show live image
-                    //
-                    displayImage("Input Image", inputImage, windowHeight, 0, 0);
-                    //
-                    // check if escape key pressed to terminate...
-                    //
-                    int waitReturn = -1;
-                    waitReturn = waitKey(1);
-                    if (waitReturn != -1) {
-                        break;
-                    }
+        if ('y' == grabNewImages) {
+            //
+            // grab an image
+            //
+            INT frameGrabReturn = -1;
+            cout << "grabbing raw images..." << endl << endl;
+            const int numImages = 3;
+            for (int index = 0; index < numImages; ++index) {
+                if (index < 2) {
+                    cout << "press <space> to save top image " << index + 1 << endl;
+                    fileName = "topImage";
+                    stringstream extra;
+                    extra << index + 1;
+                    string number;
+                    extra >> number;
+                    fileName.append(number);
                 }
                 else {
-                    cout << "frame grab failed..." << endl;
-                    return 1;
+                    cout << "press <space> to save side image" << endl;
+                    fileName = "sideImage";
                 }
+                while(1) {
+                    frameGrabReturn = is_FreezeVideo(hCam, IS_WAIT);
+                    if (frameGrabReturn == IS_SUCCESS) {
+                        //
+                        // link camera image buffer to OpenCV matrix
+                        //
+                        inputImage.data = (uchar *)ptrImgMem;
+                        //
+                        // show live image
+                        //
+                        displayImage("Input Image", inputImage, windowHeight, 0, 0);
+                        //
+                        // check if escape key pressed to terminate...
+                        //
+                        int waitReturn = -1;
+                        waitReturn = waitKey(1);
+                        if (waitReturn != -1) {
+                            break;
+                        }
+                    }
+                    else {
+                        cout << "frame grab failed..." << endl;
+                        return 1;
+                    }
+                }
+                //
+                // build up jpeg image data and write to file
+                //
+                cout << "saving file..." << endl;
+                saveImageToFile(fileName, inputImage);
             }
-            //
-            // build up jpeg image data and write to file
-            //
-            cout << "saving file..." << endl;
-            saveImageToFile(fileName, inputImage);
         }
+        else if ('n' != grabNewImages) {
+            return 1;
+        }
+        else {
+            cout << "using existing images..." << endl;
+        }
+        //
+        // process side image
+        //
+        // convert to gray scale
+        // look for contours
+        // find max contour
+        // measure height and width of max contour in pixels
+        // apply scale to image
+        // draw overlays
+        // display and save results
+        //
+        // convert to grayscale
+        //
+        Mat sideImg = imread("sideImage.jpg");
+        displayImage("Side Image", sideImg, windowHeight, 0, 0);
+        //
+        // Wait for the user to press a key.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
+        //
+        // convert to grayscale
+        //
+        uint imageFormat = CV_8U;   // 8 bit unsigned monochrome image
+        Mat graySideImg = Mat(Size(width, height), imageFormat);
+        cvtColor(sideImg, graySideImg, COLOR_BGR2GRAY);
+        displayImage("Gray Side Image", graySideImg, windowHeight, 0, 0);
+        fileName = "graySideImage";
+        saveImageToFile(fileName, graySideImg);
+        //
+        // Wait for the user to press a key.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
+        //
+        // filter prior to edge detection, use small filter size to start
+        // set the sigma values equal to each other for simplicity
+        //
+        Mat filterSideImg;
+        int filterSize = 5;
+        double sigmaValues = 25.0;
+        bilateralFilter(graySideImg,
+                        filterSideImg,
+                        filterSize,
+                        sigmaValues,
+                        sigmaValues);
+        displayImage("Filter Side Image", filterSideImg, windowHeight, 0, 0);
+        fileName = "filterSideImage";
+        saveImageToFile(fileName, filterSideImg);
+        //
+        // Wait for the user to press a key.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
+        //
+        // detect Canny edges
+        //
+        Mat cannySideImg;
+        Canny(filterSideImg, cannySideImg, 50, 150);
+        displayImage("Canny Side Image", cannySideImg, windowHeight, 0, 0);
+        fileName = "cannySideImage";
+        saveImageToFile(fileName, cannySideImg);
+        //
+        // Wait for the user to press a key.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
+        //
+        // dilate the image to eliminate smaller contours
+        //
+        Mat dilateSideImg;
+        int iterations = 3;
+        dilate(cannySideImg, dilateSideImg, Mat(), Point(-1,-1), iterations);
+        displayImage("Dilate Side Image", dilateSideImg, windowHeight, 0, 0);
+        fileName = "dilateSideImage";
+        saveImageToFile(fileName, dilateSideImg);
+        //
+        // Wait for the user to press a key in any GUI window.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
+        //
+        // find the contours
+        //
+        vector<vector<Point> > contours;
+        vector<Vec4i> hierarchy;
+        findContours( dilateSideImg, contours, hierarchy, CV_RETR_TREE,
+                      CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+        cout << "found " << contours.size() << " contours..." << endl;
+        //
+        // draw contours
+        //
+        Mat contourImg = Mat::zeros(graySideImg.rows,
+                                    graySideImg.cols,
+                                    graySideImg.type());
+        //
+        // find the largest contour
+        //
+        uint maxSize = 0;
+        uint maxIndex = 0;
+        for (uint index = 0; index < contours.size(); ++index) {
+            cout << "contour " << index << " size = "
+                 << contours[index].size() << endl;
+            if (maxSize < contours[index].size()) {
+                maxSize = contours[index].size();
+                maxIndex = index;
+            }
+        }
+        //
+        // find the height and width of the largest contour
+        //
+        int xMin = 10000;
+        int xMax = -1;
+        int yMin = 10000;
+        int yMax = -1;
+        vector<Point>::iterator pointIt;
+        for (pointIt = contours[maxIndex].begin();
+             pointIt != contours[maxIndex].end();
+             ++pointIt) {
+            Point tempPoint = *pointIt;
+            if (xMin > tempPoint.x) {
+                xMin = tempPoint.x;
+            }
+            if (xMax < tempPoint.x) {
+                xMax = tempPoint.x;
+            }
+            if (yMin > tempPoint.y) {
+                yMin = tempPoint.y;
+            }
+            if (yMax < tempPoint.y) {
+                yMax = tempPoint.y;
+            }
+        }
+        cout << "y min = " << yMin
+             << ", y max = " << yMax
+             << ", x min = " << xMin
+             << ", x max = " << xMax
+             << endl;
+        int contourHeightPix = yMax - yMin;
+        int contourWidthPix = xMax - xMin;
+        //
+        // scale to engineering units
+        //
+        // triangulate:  focal length (pixels)/object width (pixels)
+        //              = camera distance (units)/object width (units)
+        //
+        float contourHeight = (cameraDistance * (float)contourHeightPix)/(focalLength);
+        cout << "contour height = " << contourHeight << endl;
+        float contourWidth = (cameraDistance * (float)contourWidthPix)/(focalLength);
+        cout << "contour width = " << contourWidth << endl;
+        //
+        // draw the largest contour on a black background
+        //
+        Scalar color(150, 150, 150);
+        drawContours( contourImg, contours, maxIndex, color, FILLED, LINE_8, hierarchy );
+        line(contourImg, Point(xMin, yMin), Point(xMin, yMax), color, 2, LINE_8);
+        line(contourImg, Point(xMin, yMin), Point(xMax, yMin), color, 2, LINE_8);
+        stringstream heightSS;
+        heightSS << contourHeight;
+        string heightStr;
+        heightSS >> heightStr;
+        putText(contourImg,
+                heightStr,
+                Point(xMin - 400, yMin + (yMax - yMin)/2),
+                FONT_HERSHEY_SIMPLEX,
+                2,
+                color,
+                2);
+        stringstream widthSS;
+        widthSS << contourWidth;
+        string widthStr;
+        widthSS >> widthStr;
+        putText(contourImg,
+                widthStr,
+                Point(xMin + (xMax - xMin)/2, yMin - 100),
+                FONT_HERSHEY_SIMPLEX,
+                2,
+                color,
+                2);
+        displayImage("Contour Side Image", contourImg, windowHeight, 0, 0);
+        fileName = "contourSideImage";
+        saveImageToFile(fileName, contourImg);
+        //
+        // Wait for the user to press a key.
+        //
+        cout << "hit any key to continue..." << endl;
+        cvWaitKey(0);
+        destroyAllWindows();
         //
         // detect and compute features
         //
-        Mat perspImg1 = imread("sideImage1.jpg");
-        uint imageFormat = CV_8U;   // 8 bit unsigned monochrome image
+        Mat perspImg1 = imread("topImage1.jpg");
         Mat grayImg1 = Mat(Size(width, height), imageFormat);
         //
         // SIFT and SURF require grayscale image inputs
         //
         cvtColor(perspImg1, grayImg1, COLOR_BGR2GRAY);
-        Mat perspImg2 = imread("sideImage2.jpg");
+        Mat perspImg2 = imread("topImage2.jpg");
         Mat grayImg2 = Mat(Size(width, height), imageFormat);
         cvtColor(perspImg2, grayImg2, COLOR_BGR2GRAY);
         vector<KeyPoint> keypts1;
@@ -934,7 +1137,7 @@ int main(int argc, char *argv[])
             vector<DMatch>::iterator matchIter;
             vector<char> matchesMask;
             for (matchIter = rectMatches.begin();
-                 matchIter != rectMatches.end(); ++matchIter) {
+                matchIter != rectMatches.end(); ++matchIter) {
                 int index1 = matchIter->queryIdx;
                 float x1 = rectKeypts1[index1].pt.x;
                 float y1 = rectKeypts1[index1].pt.y;
