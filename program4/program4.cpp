@@ -2,48 +2,62 @@
 
   Instructions for Ubuntu 16.04 with OpenCV 3.1 and opencv_contrib:
 
-  unzip the zip file
+  clone the repository or download a compressed file and extract the files
   run make
-  run ./project
+  run ./program4 arg1 arg2 arg3
 
-In this project, I calibrate a camera, detect rich features, match keypoints
-in successive images, determine projective transformations, calculate depth
-from single camera images, and calculate feature dimensions in engineering units.
+  arg1:  camera spacing in engineering units such as inches
+  arg2:  camera focal length in pixels
+  arg3:  horizontal distance from object to camera in engineering units
+         such as inches
+
+In this project, I calibrate a camera, measure 2D object features, detect rich
+keypoint matchind features, match keypoints in successive images, determine
+projective transformations, calculate depth from single camera images, and
+calculate feature dimensions in engineering units.
 
 1. Calibrate the camera by taking a sequence of images of a test target,
 saving the images to jpeg files, and supplying the images to the OpenCV
 function calibrateCamera().
 
-2. Grab 2 reference images and save them to jpeg files named image1.jpg and
-image2.jpg.
+2. Grab 3 reference images and save them to jpeg files named sideimage.jpg,
+topeImage1.jpg, and topImage2.jpg.
 
-3. Detect SIFT and/or SURF keypoints in each image, draw the keypoints, and
+3. Filter and segment the side view image.
+
+4. Find edges and contours in the side image.
+
+5. Calculate contour height and width from processed side image.
+
+6. Detect SIFT keypoints in each top image, draw the keypoints, and
 display the resulting overlayed image.
 
-4. Calculate the essential matrix.
+7. Calculate the essential matrix.
 
-5. Determine the camera pose between 2 images.
+8. Determine the camera pose between 2 images.
 
-6. Rectify the images.
+9. Rectify the images.
 
-7. Find the disparity map of the stereo image pair.
+10. Find the disparity map of the calibrated stereo image pair, display the
+disparity map.
 
-8. Perform uncalibrated rectification by warping with perspective transform.
+11. Perform uncalibrated depth measurement by warping with perspective
+transform obtained from the fundamental matrix and uncalibrated
+stereo rectification.
 
-9. Find uncalibrated disparity map.
+12. Find uncalibrated disparity map, display the disparity map.
 
-10. Detect SIFT for rectified calibrated image pair and calculate disparity
-map for the SIFT matches that lie on horizontal lines.
+13. Detect SIFT keypoints for rectified calibrated image pair and calculate
+disparity map for the SIFT matches that lie on horizontal lines.
 
-11. Find the SIFT correlated disparity map.
+14. Find the SIFT correlated disparity map.
 
-12. Convert disparity map to depth map in engineering units
+15. Convert disparity map to depth map in engineering units
 for known camera spacing.
 
-13. Calculate object depth and check accuracy with known distances and camera
-spacing.
+16. Calculate object depth.
 
-14. Display the disparity and depth maps.
+17. Display point cloud representation of the depth map.
 
 */
 
