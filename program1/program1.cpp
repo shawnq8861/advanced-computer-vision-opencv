@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     //
     // Wait for the user to press a key in the GUI window.
     //
-    cvWaitKey(0);
+    waitKey(0);
     //
     // destroy the last window before displaying a new window
     //
@@ -82,16 +82,16 @@ int main(int argc, char *argv[])
     flip(image, flipImage, flipCodeHorizontal);
     namedWindow("Flipped Image");
     imshow("Flipped Image", flipImage);
-    cvWaitKey(0);
+    waitKey(0);
     destroyWindow("Flipped Image");
     //
     // - convert it to greyscale
     //
     Mat grayImage;
-    cvtColor(flipImage, grayImage, CV_RGB2GRAY);
+    cvtColor(flipImage, grayImage, COLOR_RGB2GRAY);
     namedWindow("Grayscale Image");
     imshow("Grayscale Image", grayImage);
-    cvWaitKey(0);
+    waitKey(0);
     destroyWindow("Grayscale Image");
     //
     // - blur it
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     GaussianBlur(grayImage, blurImage, Size(kSize, kSize), sigma, sigma);
     namedWindow("Blurred Image");
     imshow("Blurred Image", blurImage);
-    cvWaitKey(0);
+    waitKey(0);
     destroyWindow("Blurred Image");
     //
     // - detect edges.
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
     Canny(blurImage, edgeImage, threshold1, threshold2);
     namedWindow("Edge Image");
     imshow("Edge Image", edgeImage);
-    cvWaitKey(0);
+    waitKey(0);
     destroyWindow("Edge Image");
 
     return 0;
