@@ -5,7 +5,7 @@ Dependencies - OpenCV 3.1 with opencv_contrib
 
 Program 1 - color conversion, edge detection, filtering, and flipping.
 
-Program 2 - color histogram binning, merging of backjground and foreground images similar to "green screen" method.
+Program 2 - color histogram binning, merging of background and foreground images similar to "green screen" method.
 
 Program 3 - k-means clustering of image colors, replacement of original pixel values with clustered values, Mat traversing and custom, 5 channel data type.
 
